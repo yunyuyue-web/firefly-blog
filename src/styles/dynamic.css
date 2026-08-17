@@ -13,6 +13,11 @@
 	padding: 1.5rem 2rem;
 }
 
+/* 允许年份下拉面板溢出卡片，避免被 card-base 的 overflow-hidden 裁剪 */
+.dynamic-page-header.card-base {
+	overflow: visible;
+}
+
 .dynamic-page-heading {
 	display: flex;
 	align-items: center;
@@ -121,46 +126,110 @@ dynamic-feed {
 	display: flex;
 	flex: 0 0 auto;
 	align-items: center;
-	color: var(--content-meta);
+	color: var(--btn-content);
 }
 
-.dynamic-year-select svg:first-child {
+.dynamic-year-select svg.year-select-calendar {
 	position: absolute;
 	left: 0.75rem;
 	font-size: 1.15rem;
 	pointer-events: none;
+	z-index: 1;
 }
 
-.dynamic-year-select svg:last-child {
+.dynamic-year-select svg.year-select-arrow {
 	position: absolute;
 	right: 0.5rem;
 	font-size: 1.25rem;
 	pointer-events: none;
+	z-index: 1;
+	transition: transform var(--duration-medium) var(--ease-standard);
 }
 
-.dynamic-year-select select {
+.dynamic-year-select[data-open="true"] > svg.year-select-arrow {
+	transform: rotate(180deg);
+}
+
+.year-select-trigger {
+	display: flex;
+	align-items: center;
 	min-width: 9.5rem;
 	min-height: 2.75rem;
-	appearance: none;
-	border: 1px solid var(--line-divider);
+	border: 1px solid color-mix(in srgb, var(--btn-content) 18%, transparent);
 	border-radius: var(--radius-large);
 	outline: none;
-	background: var(--card-bg);
-	color: rgb(0 0 0 / 90%);
-	color-scheme: light;
+	background: var(--btn-regular-bg);
+	color: var(--btn-content);
 	padding: 0.625rem 2.25rem 0.625rem 2.35rem;
 	font-size: 0.9rem;
+	font-weight: 500;
 	cursor: pointer;
+	transition:
+		background-color var(--duration-medium) var(--ease-standard),
+		border-color var(--duration-medium) var(--ease-standard),
+		box-shadow var(--duration-medium) var(--ease-standard),
+		color var(--duration-medium) var(--ease-standard);
 }
 
-.dynamic-year-select select option {
-	background: var(--card-bg);
-	color: rgb(0 0 0 / 90%);
+.year-select-trigger:hover {
+	background: var(--btn-regular-bg-hover);
+	border-color: color-mix(in srgb, var(--btn-content) 32%, transparent);
 }
 
-.dynamic-year-select select:focus {
+.year-select-trigger:active {
+	background: var(--btn-regular-bg-active);
+}
+
+.year-select-trigger:focus-visible {
 	border-color: var(--primary);
-	box-shadow: 0 0 0 1px var(--primary);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+/* 自定义下拉面板 */
+.year-select-menu {
+	position: absolute;
+	top: calc(100% + 0.375rem);
+	left: 0;
+	right: 0;
+	min-width: 100%;
+	z-index: 60;
+	padding: 0.375rem;
+	background: var(--card-bg);
+	border: 1px solid var(--line-color);
+	border-radius: var(--radius-large);
+	box-shadow: 0 12px 32px rgb(0 0 0 / 12%);
+}
+
+.year-select-menu[hidden] {
+	display: none;
+}
+
+.year-select-option {
+	display: flex;
+	align-items: center;
+	width: 100%;
+	padding: 0.5rem 0.75rem;
+	border: 0;
+	border-radius: var(--radius-lg);
+	background: transparent;
+	color: var(--deep-text);
+	font-size: 0.9rem;
+	text-align: left;
+	cursor: pointer;
+	transition:
+		background-color var(--duration-fast) var(--ease-standard),
+		color var(--duration-fast) var(--ease-standard);
+}
+
+.year-select-option:hover,
+.year-select-option:focus-visible {
+	background: var(--btn-regular-bg-hover);
+	outline: none;
+}
+
+.year-select-option.is-selected {
+	color: var(--primary);
+	font-weight: 600;
 }
 
 .dynamic-feed {
@@ -708,16 +777,27 @@ dynamic-feed {
 	color: var(--primary);
 }
 
-:root.dark .dynamic-search input,
-:root.dark .dynamic-year-select select {
+:root.dark .dynamic-search input {
 	background: transparent;
 	color: rgb(255 255 255 / 90%);
 	color-scheme: dark;
 }
 
-:root.dark .dynamic-year-select select option {
-	background: var(--card-bg);
-	color: rgb(255 255 255 / 90%);
+:root.dark .year-select-trigger {
+	background: var(--btn-regular-bg);
+	color: var(--btn-content);
+}
+
+:root.dark .year-select-trigger:hover {
+	background: var(--btn-regular-bg-hover);
+}
+
+:root.dark .year-select-option {
+	color: rgb(255 255 255 / 85%);
+}
+
+:root.dark .year-select-option.is-selected {
+	color: var(--primary);
 }
 
 /* 透明模式适配 */
@@ -725,12 +805,12 @@ body.wallpaper-transparent .dynamic-search input {
 	background: transparent;
 }
 
-body.wallpaper-transparent .dynamic-year-select select {
+body.wallpaper-transparent .year-select-trigger {
 	background: transparent;
 }
 
-body.wallpaper-transparent .dynamic-year-select select option {
-	background: var(--card-bg);
+body.wallpaper-transparent .year-select-trigger:hover {
+	background: color-mix(in srgb, var(--btn-regular-bg-hover) 55%, transparent);
 }
 
 @media (max-width: 768px) {
@@ -762,7 +842,7 @@ body.wallpaper-transparent .dynamic-year-select select option {
 		flex-direction: column;
 	}
 
-	.dynamic-year-select select {
+	.year-select-trigger {
 		width: 100%;
 	}
 

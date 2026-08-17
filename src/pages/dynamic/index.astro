@@ -58,13 +58,38 @@ const memos = dynamicConfig.memos;
 							placeholder={i18n(I18nKey.dynamicSearch)}
 						/>
 					</label>
-					<label class="dynamic-year-select">
-						<Icon is:inline name="material-symbols:calendar-month-rounded" />
-						<select data-year-select aria-label={i18n(I18nKey.year)}>
-							<option value="all">{i18n(I18nKey.dynamicAllYears)}</option>
-						</select>
-						<Icon is:inline name="material-symbols:arrow-drop-down-rounded" />
-					</label>
+					<div class="dynamic-year-select">
+						<Icon
+							is:inline
+							name="material-symbols:calendar-month-rounded"
+							class="year-select-calendar"
+						/>
+						<button
+							type="button"
+							class="year-select-trigger"
+							data-year-trigger
+							aria-haspopup="listbox"
+							aria-expanded="false"
+						>
+							<span data-year-current>{i18n(I18nKey.dynamicAllYears)}</span>
+						</button>
+						<Icon
+							is:inline
+							name="material-symbols:arrow-drop-down-rounded"
+							class="year-select-arrow"
+						/>
+						<div class="year-select-menu" data-year-menu role="listbox" hidden>
+							<button
+								type="button"
+								class="year-select-option"
+								role="option"
+								data-year-option
+								data-value="all"
+							>
+								{i18n(I18nKey.dynamicAllYears)}
+							</button>
+						</div>
+					</div>
 				</div>
 			</header>
 
