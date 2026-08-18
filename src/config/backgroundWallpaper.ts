@@ -64,9 +64,8 @@ export const backgroundWallpaper: BackgroundWallpaperConfig = {
 			titleSize: "4.5rem",
 			// 主页横幅副标题
 			subtitle: [
-				"我有时开心但我有时也很焦虑",
-				"有好多回忆在我身上留下烙印",
-				"想的太多总是让我变得消极",
+				"让我们驾驶火车在漫长季节",
+				"按下喇叭前行中找到意义",
 			],
 			// 主页横幅副标题字体大小
 			subtitleSize: "1.5rem",

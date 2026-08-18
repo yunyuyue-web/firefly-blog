@@ -61,7 +61,10 @@ let templateReady = $state(false);
 let list: HTMLElement;
 let template: HTMLTemplateElement | null = null;
 let searchInput: HTMLInputElement | null = null;
-let yearSelect: HTMLSelectElement | null = null;
+let yearTrigger: HTMLButtonElement | null = null;
+let yearMenu: HTMLElement | null = null;
+let yearCurrent: HTMLElement | null = null;
+let selectedYear = $state("all");
 let restoreAnchorAfterRender = false;
 
 const pageEntries = $derived(
@@ -85,7 +88,7 @@ function updateUrl(clearHash = false) {
 
 function applyFilters(resetPage = true) {
 	const query = searchInput?.value.toLocaleLowerCase().trim() || "";
-	const year = yearSelect?.value || "all";
+	const year = selectedYear || "all";
 	filtered = entries.filter(
 		(entry) =>
 			(year === "all" ||
@@ -98,24 +101,85 @@ function applyFilters(resetPage = true) {
 	updateUrl(resetPage);
 }
 
+function createYearOption(value: string, label: string) {
+	const option = document.createElement("button");
+	option.type = "button";
+	option.className = "year-select-option";
+	option.setAttribute("role", "option");
+	option.dataset.yearOption = "";
+	option.dataset.value = value;
+	option.textContent = label;
+	return option;
+}
+
 function populateYears() {
-	if (!yearSelect) return;
-	yearSelect.replaceChildren();
-	const all = document.createElement("option");
-	all.value = "all";
-	all.textContent = allYearsText;
-	yearSelect.append(all);
+	if (!yearMenu) return;
+	yearMenu.replaceChildren();
+	yearMenu.append(createYearOption("all", allYearsText));
 	const years = [
 		...new Set(
 			entries.map((entry) => new Date(entry.published).getUTCFullYear()),
 		),
 	];
 	for (const year of years) {
-		const option = document.createElement("option");
-		option.value = String(year);
-		option.textContent = String(year);
-		yearSelect.append(option);
+		yearMenu.append(createYearOption(String(year), String(year)));
 	}
+	updateYearSelection();
+}
+
+function updateYearSelection() {
+	if (!yearMenu) return;
+	yearMenu
+		.querySelectorAll<HTMLElement>("[data-year-option]")
+		.forEach((option) => {
+			const isSelected = option.dataset.value === selectedYear;
+			option.classList.toggle("is-selected", isSelected);
+			option.setAttribute("aria-selected", String(isSelected));
+		});
+	if (yearCurrent) {
+		const label =
+			yearMenu.querySelector<HTMLElement>(
+				`[data-year-option][data-value="${selectedYear}"]`,
+			)?.textContent;
+		if (label) yearCurrent.textContent = label;
+	}
+}
+
+function openYearMenu() {
+	if (!yearMenu) return;
+	yearMenu.hidden = false;
+	yearTrigger?.setAttribute("aria-expanded", "true");
+	yearTrigger
+		?.closest(".dynamic-year-select")
+		?.setAttribute("data-open", "true");
+}
+
+function closeYearMenu() {
+	if (!yearMenu) return;
+	yearMenu.hidden = true;
+	yearTrigger?.setAttribute("aria-expanded", "false");
+	yearTrigger
+		?.closest(".dynamic-year-select")
+		?.setAttribute("data-open", "false");
+}
+
+function toggleYearMenu() {
+	yearMenu?.hidden ? openYearMenu() : closeYearMenu();
+}
+
+function selectYear(value: string) {
+	selectedYear = value;
+	updateYearSelection();
+	closeYearMenu();
+	applyFilters();
+}
+
+function focusCurrentYearOption() {
+	const options = Array.from(
+		yearMenu?.querySelectorAll<HTMLElement>("[data-year-option]") ?? [],
+	);
+	if (options.length === 0) return;
+	(options.find((o) => o.dataset.value === selectedYear) || options[0]).focus();
 }
 
 function createItem(entry: DynamicData) {
@@ -277,11 +341,67 @@ onMount(() => {
 	templateReady = template !== null;
 	searchInput =
 		page?.querySelector<HTMLInputElement>("[data-dynamic-search]") ?? null;
-	yearSelect =
-		page?.querySelector<HTMLSelectElement>("[data-year-select]") ?? null;
+	yearTrigger =
+		page?.querySelector<HTMLButtonElement>("[data-year-trigger]") ?? null;
+	yearMenu = page?.querySelector<HTMLElement>("[data-year-menu]") ?? null;
+	yearCurrent =
+		page?.querySelector<HTMLElement>("[data-year-current]") ?? null;
 	const filter = () => applyFilters();
 	searchInput?.addEventListener("input", filter);
-	yearSelect?.addEventListener("change", filter);
+
+	const onTriggerClick = (event: MouseEvent) => {
+		event.stopPropagation();
+		toggleYearMenu();
+	};
+	const onMenuClick = (event: MouseEvent) => {
+		const target = (event.target as HTMLElement).closest<HTMLElement>(
+			"[data-year-option]",
+		);
+		if (!target) return;
+		selectYear(target.dataset.value || "all");
+	};
+	const onDocClick = (event: MouseEvent) => {
+		if (yearMenu && !yearMenu.hidden && !yearMenu.contains(event.target as Node)) {
+			closeYearMenu();
+		}
+	};
+	const onTriggerKeydown = (event: KeyboardEvent) => {
+		if (["Enter", " ", "ArrowDown", "ArrowUp"].includes(event.key)) {
+			event.preventDefault();
+			openYearMenu();
+			focusCurrentYearOption();
+		}
+	};
+	const onMenuKeydown = (event: KeyboardEvent) => {
+		const options = Array.from(
+			yearMenu?.querySelectorAll<HTMLElement>("[data-year-option]") ?? [],
+		);
+		if (options.length === 0) return;
+		const index = options.indexOf(document.activeElement as HTMLElement);
+		if (event.key === "ArrowDown") {
+			event.preventDefault();
+			options[(index + 1) % options.length]?.focus();
+		} else if (event.key === "ArrowUp") {
+			event.preventDefault();
+			options[(index - 1 + options.length) % options.length]?.focus();
+		} else if (event.key === "Escape") {
+			event.preventDefault();
+			closeYearMenu();
+			yearTrigger?.focus();
+		} else if (event.key === "Enter" || event.key === " ") {
+			event.preventDefault();
+			const active = document.activeElement as HTMLElement | null;
+			if (active?.hasAttribute("data-year-option")) {
+				selectYear(active.dataset.value || "all");
+			}
+		}
+	};
+
+	yearTrigger?.addEventListener("click", onTriggerClick);
+	yearMenu?.addEventListener("click", onMenuClick);
+	yearTrigger?.addEventListener("keydown", onTriggerKeydown);
+	yearMenu?.addEventListener("keydown", onMenuKeydown);
+	document.addEventListener("click", onDocClick);
 
 	const load = async () => {
 		try {
@@ -321,7 +441,11 @@ onMount(() => {
 
 	return () => {
 		searchInput?.removeEventListener("input", filter);
-		yearSelect?.removeEventListener("change", filter);
+		yearTrigger?.removeEventListener("click", onTriggerClick);
+		yearMenu?.removeEventListener("click", onMenuClick);
+		yearTrigger?.removeEventListener("keydown", onTriggerKeydown);
+		yearMenu?.removeEventListener("keydown", onMenuKeydown);
+		document.removeEventListener("click", onDocClick);
 	};
 });
 </script>
